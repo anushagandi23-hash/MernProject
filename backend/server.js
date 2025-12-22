@@ -217,13 +217,15 @@ app.post('/login', async (req, res) => {
   res.json({ token });
 });
 
-
+app.get("/",(req,res)=>{
+  res.send("backend running");
+})
 
 
 /* ===========================
    DATABASE CONNECTION
 =========================== */
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT ;
 const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
