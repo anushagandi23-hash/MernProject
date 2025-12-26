@@ -30,9 +30,9 @@ function SearchBus() {
   };
 
   const handleSwap = () => {
-    [from, to] = [to, from];
+    const temp = from;
     setFrom(to);
-    setTo(from);
+    setTo(temp);
   };
 
   return (

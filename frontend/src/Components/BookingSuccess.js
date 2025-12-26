@@ -4,15 +4,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 function BookingSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { busId, seats } = location.state || {};
+  const { busId, tripId, seats, bookingId } = location.state || {};
+  
+  // Accept either busId (old) or tripId (new)
+  const id = bookingId || busId || tripId;
 
   useEffect(() => {
-    if (!seats || !busId) {
+    if (!seats || !id) {
       navigate('/search');
     }
-  }, [seats, busId, navigate]);
+  }, [seats, id, navigate]);
 
-  if (!seats || !busId) {
+  if (!seats || !id) {
     return (
       <>
         <div className="header">
@@ -76,7 +79,7 @@ function BookingSuccess() {
               }}>
                 <div style={{ fontSize: "12px", color: "#636e72", marginBottom: "4px" }}>Booking ID</div>
                 <div style={{ fontSize: "20px", fontWeight: "700", color: "#2d3436", fontFamily: "monospace" }}>
-                  {busId}
+                  {id}
                 </div>
               </div>
 

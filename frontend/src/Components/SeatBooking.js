@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import API_URL from "../config/api";
+import { API_URL } from "../config/api";
 
 function SeatBooking() {
   const { id } = useParams();
@@ -18,15 +18,39 @@ function SeatBooking() {
 
   useEffect(() => {
     axios
-      .get(`${API_URL}/buses/${id}/seats`)
+      .get(`${API_URL}/trips/${id}`)
       .then(res => {
-        setAvailableSeats(res.data.availableSeats);
-        setBookedSeats(res.data.bookedSeats);
-        setTotalSeats(res.data.totalSeats || 0);
+        console.log('📥 Trip response:', res.data);
+        const tripData = res.data?.data || {};
+        
+        // Set total seats
+        setTotalSeats(tripData.totalSeats || 0);
+        
+        // Extract seat map information
+        const seatMap = tripData.seatMap || {};
+        console.log('🪑 Seat map:', seatMap);
+        
+        // Get available and booked seats from seatMap
+        const allSeatNums = Array.from({ length: tripData.totalSeats || 0 }, (_, i) => i + 1);
+        const available = allSeatNums.filter(seat => {
+          const seatInfo = seatMap[seat];
+          return !seatInfo || (!seatInfo.booked && !seatInfo.reserved);
+        });
+        const booked = allSeatNums.filter(seat => {
+          const seatInfo = seatMap[seat];
+          return seatInfo && (seatInfo.booked || seatInfo.reserved);
+        });
+        
+        console.log('✅ Available seats:', available.length, available);
+        console.log('❌ Booked seats:', booked.length, booked);
+        
+        setAvailableSeats(available);
+        setBookedSeats(booked);
         setLoading(false);
       })
       .catch(err => {
-        setMessage("Failed to load seats");
+        console.error('❌ Error loading trip:', err);
+        setMessage("Failed to load trip details");
         setMsgType("error");
         setLoading(false);
       });
@@ -47,22 +71,46 @@ function SeatBooking() {
     setMessage("");
     
     try {
-      await axios.post(
-        `${API_URL}/buses/${id}/book`,
+      // Book seats on a trip instead of a bus
+      const bookingResponse = await axios.post(
+        `${API_URL}/trips/${id}/book`,
         { seats: selectedSeats },
-        { headers: { Authorization: localStorage.getItem("token") } }
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
+
+      const bookingId = bookingResponse.data.booking?.id || bookingResponse.data.bookingId;
       
-      setMessage("Booking successful! Redirecting...");
-      setMsgType("success");
-      
-      setTimeout(() => {
-        navigate("/booking-success", {
-          state: { busId: id, seats: selectedSeats }
-        });
-      }, 1000);
+      if (!bookingId) {
+        throw new Error("Booking ID not received from server");
+      }
+
+      if (bookingResponse.data.success) {
+        // Auto-confirm the booking immediately
+        try {
+          await axios.post(
+            `${API_URL}/bookings/${bookingId}/confirm`,
+            {},
+            { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+          );
+        } catch (confirmErr) {
+          console.warn('Warning: Could not auto-confirm booking:', confirmErr.message);
+          // Don't fail if confirm fails - let user manually confirm from booking-success page
+        }
+
+        setMessage("Booking confirmed successfully! Redirecting...");
+        setMsgType("success");
+        
+        setTimeout(() => {
+          navigate("/booking-success", {
+            state: { tripId: id, seats: selectedSeats, bookingId: bookingId }
+          });
+        }, 1500);
+      } else {
+        throw new Error(bookingResponse.data.error || "Failed to book seats");
+      }
     } catch (err) {
-      setMessage(err.response?.data?.message || "Booking failed. Please try again.");
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Booking failed. Please try again.";
+      setMessage(errorMsg);
       setMsgType("error");
       setBookingLoading(false);
     }

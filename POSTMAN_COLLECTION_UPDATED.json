@@ -1,0 +1,403 @@
+{
+  "info": {
+    "name": "Ticket Booking System API",
+    "description": "Complete API collection for Ticket Booking System with Trip Management",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/signup",
+              "host": ["{{base_url}}"],
+              "path": ["signup"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('jwt_token', jsonData.token);",
+                  "    console.log('Token saved:', jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/login",
+              "host": ["{{base_url}}"],
+              "path": ["login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trip Management",
+      "item": [
+        {
+          "name": "Create Trip (Admin Only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('trip_id', jsonData.trip.id);",
+                  "    console.log('Trip created with ID:', jsonData.trip.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"busId\": 1,\n  \"busName\": \"Express 101\",\n  \"startTime\": \"2025-12-26T10:00:00Z\",\n  \"endTime\": \"2025-12-26T14:00:00Z\",\n  \"from\": \"Hyderabad\",\n  \"to\": \"Tirupati\",\n  \"totalSeats\": 40,\n  \"pricePerSeat\": 500\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/create",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "create"]
+            }
+          }
+        },
+        {
+          "name": "Get All Available Trips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips",
+              "host": ["{{base_url}}"],
+              "path": ["trips"]
+            }
+          }
+        },
+        {
+          "name": "Search Trips by Route",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips?from=Hyderabad&to=Tirupati",
+              "host": ["{{base_url}}"],
+              "path": ["trips"],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "Hyderabad"
+                },
+                {
+                  "key": "to",
+                  "value": "Tirupati"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Trip Details with Seats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/{{trip_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "{{trip_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get All Admin Trips",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/trips/admin/all",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "admin", "all"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Trip Bookings",
+      "item": [
+        {
+          "name": "Book Seats on Trip",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('booking_id', jsonData.booking.id);",
+                  "    console.log('Booking created with ID:', jsonData.booking.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seats\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/{{trip_id}}/book",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "{{trip_id}}", "book"]
+            }
+          }
+        },
+        {
+          "name": "Get Booking Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/user/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["user", "bookings"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/bookings/{{booking_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["bookings", "{{booking_id}}", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Concurrent Booking Tests",
+      "item": [
+        {
+          "name": "Concurrent Trip Booking Test 1",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seats\": [10, 11, 12]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/{{trip_id}}/book",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "{{trip_id}}", "book"]
+            }
+          }
+        },
+        {
+          "name": "Concurrent Trip Booking Test 2",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jwt_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"seats\": [10, 11, 13]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/trips/{{trip_id}}/book",
+              "host": ["{{base_url}}"],
+              "path": ["trips", "{{trip_id}}", "book"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "trip_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "booking_id",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import API_URL from "../config/api";
+import { useAuth } from "../contexts/AuthContext";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -11,6 +10,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -32,14 +32,13 @@ function Login() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/login`, { email, password });
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("userEmail", email);
+      await login(email, password);
       setMessage("✓ Login successful! Redirecting...");
       setMsgType("success");
       setTimeout(() => navigate("/dashboard"), 1200);
     } catch (error) {
-      setMessage(error.response?.data || "Invalid email or password");
+      const errorMsg = error.message || "Invalid email or password";
+      setMessage(errorMsg);
       setMsgType("error");
       setLoading(false);
     }
@@ -110,6 +109,9 @@ function Login() {
                   onFocus={(e) => e.target.style.borderColor = "#667eea"}
                   onBlur={(e) => e.target.style.borderColor = "#e9ecef"}
                 />
+                <p style={{ fontSize: "12px", color: "#636e72", marginTop: "6px", marginBottom: 0 }}>
+                  💡 <strong>Admin Tip:</strong> If you signed up as Admin, use your email with "admin-" prefix (e.g., admin-yourname@email.com)
+                </p>
               </div>
 
               <div className="form-group" style={{ marginBottom: "24px" }}>

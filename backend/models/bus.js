@@ -1,22 +1,46 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-const busSchema = new mongoose.Schema({
-  busNumber: String,
-  from: String,
-  to: String,
-  departureTime: String,
-  arrivalTime: String,
-  price: Number,
-
-  totalSeats: {
-    type: Number,
-    default: 40   // ✅ important
+const Bus = sequelize.define('Bus', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
-
-  bookedSeats: {
-    type: [Number],
-    default: []   // ✅ important
+  busNumber: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true
+  },
+  from: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  to: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  departureTime: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  arrivalTime: {
+    type: DataTypes.DATE,
+    allowNull: false
+  },
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: false
+  },
+  totalSeats: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 40
   }
+}, {
+  timestamps: true,
+  tableName: 'Buses'
 });
 
-module.exports = mongoose.model('Bus', busSchema);
+module.exports = Bus;
+

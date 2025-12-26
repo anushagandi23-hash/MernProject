@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
-import API_URL from "../config/api";
+import { API_URL } from "../config/api";
 
 function BusList() {
   const [buses, setBuses] = useState([]);
@@ -15,21 +15,25 @@ function BusList() {
     const from = params.get('from') || '';
     const to = params.get('to') || '';
 
+    // Search for Trips (which are created by admins) instead of Buses
     const url = (from && to) 
-      ? `${API_URL}/buses/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` 
-      : `${API_URL}/buses`;
+      ? `${API_URL}/trips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` 
+      : `${API_URL}/trips`;
 
     setLoading(true);
     axios.get(url)
-      .then(res => setBuses(res.data || []))
-      .catch(() => setBuses([]))
+      .then(res => setBuses(res.data?.data || []))
+      .catch((err) => {
+        console.error('Error fetching trips:', err);
+        setBuses([]);
+      })
       .finally(() => setLoading(false));
   }, [location.search]);
 
   const sortedBuses = [...buses].sort((a, b) => {
-    if (sortBy === 'price') return a.price - b.price;
-    if (sortBy === 'departure') return a.departureTime.localeCompare(b.departureTime);
-    if (sortBy === 'availability') return (b.totalSeats - b.bookedSeats.length) - (a.totalSeats - a.bookedSeats.length);
+    if (sortBy === 'price') return a.pricePerSeat - b.pricePerSeat;
+    if (sortBy === 'departure') return new Date(a.startTime) - new Date(b.startTime);
+    if (sortBy === 'availability') return b.availableSeats - a.availableSeats;
     return 0;
   });
 
@@ -102,18 +106,18 @@ function BusList() {
         {/* Buses List */}
         <div className="list">
           {sortedBuses.map((bus, idx) => {
-            const occupancy = bus.bookedSeats?.length || 0;
-            const available = bus.totalSeats - occupancy;
-            const occupancyPercent = ((occupancy / bus.totalSeats) * 100).toFixed(0);
+            const available = bus.availableSeats || 0;
+            const booked = bus.totalSeats - available;
+            const occupancyPercent = ((booked / bus.totalSeats) * 100).toFixed(0);
             
             return (
-              <div key={bus._id} className="card" style={{ animation: `slideInUp 0.5s ease-out ${idx * 0.1}s both` }}>
+              <div key={bus.id} className="card" style={{ animation: `slideInUp 0.5s ease-out ${idx * 0.1}s both` }}>
                 <div className="row">
                   <div style={{ flex: 1 }}>
                     <p className="route">
                       {bus.from} <span style={{ color: "#d63031", fontSize: "16px" }}>→</span> {bus.to}
                     </p>
-                    <p className="time">⏰ {bus.departureTime} to {bus.arrivalTime}</p>
+                    <p className="time">⏰ {new Date(bus.startTime).toLocaleString()} to {new Date(bus.endTime).toLocaleString()}</p>
                     
                     {/* Availability Bar */}
                     <div style={{ marginTop: "10px", display: "flex", gap: "8px", alignItems: "center" }}>
@@ -137,10 +141,10 @@ function BusList() {
                     </div>
                   </div>
                   <div className="meta">
-                    <p className="price">₹{bus.price}</p>
+                    <p className="price">₹{bus.pricePerSeat}</p>
                     <button
                       className="btn"
-                      onClick={() => navigate(`/seats/${bus._id}`)}
+                      onClick={() => navigate(`/booking/${bus.id}`)}
                       style={{
                         padding: "9px 14px",
                         fontSize: "13px",

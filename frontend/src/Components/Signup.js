@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
-import API_URL from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [userType, setUserType] = useState('user'); // 'user' or 'admin'
   const [message, setMessage] = useState('');
   const [msgType, setMsgType] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const validateForm = () => {
     if (!name.trim()) return "Name is required";
@@ -35,12 +36,21 @@ function SignupForm() {
 
     setLoading(true);
     try {
-      await axios.post(`${API_URL}/signup`, { name, email, password });
-      setMessage('✓ Signup successful! Redirecting to login...');
+      // If user selected admin role, prefix email with 'admin-'
+      const finalEmail = userType === 'admin' && !email.includes('admin') ? `admin-${email}` : email;
+      await signup(name, finalEmail, password);
+      
+      // Create helpful message with login details
+      const loginMessage = userType === 'admin' 
+        ? `✓ Admin account created! Use email: ${finalEmail} to login`
+        : '✓ Signup successful! Redirecting to login...';
+      
+      setMessage(loginMessage);
       setMsgType('success');
-      setTimeout(() => navigate('/'), 1200);
+      setTimeout(() => navigate('/'), 2000);
     } catch (err) {
-      setMessage(err.response?.data || 'Signup failed. Please try again.');
+      const errorMsg = err.message || 'Signup failed. Please try again.';
+      setMessage(errorMsg);
       setMsgType('error');
       setLoading(false);
     }
@@ -117,18 +127,69 @@ function SignupForm() {
               </div>
 
               <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label style={{ fontWeight: "600", marginBottom: "8px", display: "block", color: "#2d3436", fontSize: "14px" }}>Account Type</label>
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", flex: 1 }}>
+                    <input
+                      type="radio"
+                      name="userType"
+                      value="user"
+                      checked={userType === 'user'}
+                      onChange={(e) => setUserType(e.target.value)}
+                      disabled={loading}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "14px", color: "#2d3436" }}>👤 User</span>
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", flex: 1 }}>
+                    <input
+                      type="radio"
+                      name="userType"
+                      value="admin"
+                      checked={userType === 'admin'}
+                      onChange={(e) => setUserType(e.target.value)}
+                      disabled={loading}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "14px", color: "#2d3436" }}>👨‍💼 Admin</span>
+                  </label>
+                </div>
+                {userType === 'admin' && (
+                  <p style={{ fontSize: "12px", color: "#667eea", marginTop: "8px", marginBottom: 0 }}>
+                    ℹ️ Your email will be prefixed with 'admin-' to enable admin privileges
+                  </p>
+                )}
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "20px" }}>
                 <label style={{ fontWeight: "600", marginBottom: "8px", display: "block", color: "#2d3436", fontSize: "14px" }}>Email Address</label>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                  style={{ padding: "12px 14px", border: "2px solid #e9ecef", borderRadius: "8px", fontSize: "14px", transition: "all 0.3s", width: "100%", boxSizing: "border-box" }}
-                  onFocus={(e) => e.target.style.borderColor = "#667eea"}
-                  onBlur={(e) => e.target.style.borderColor = "#e9ecef"}
-                />
+                <div style={{ position: "relative" }}>
+                  {userType === 'admin' && (
+                    <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "12px", fontWeight: "600", color: "#667eea" }}>
+                      admin-
+                    </span>
+                  )}
+                  <input
+                    type="email"
+                    placeholder={userType === 'admin' ? "yourname@email.com" : "your@email.com"}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    style={{ 
+                      padding: "12px 14px", 
+                      paddingLeft: userType === 'admin' ? "50px" : "14px",
+                      border: "2px solid #e9ecef", 
+                      borderRadius: "8px", 
+                      fontSize: "14px", 
+                      transition: "all 0.3s", 
+                      width: "100%", 
+                      boxSizing: "border-box" 
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#667eea"}
+                    onBlur={(e) => e.target.style.borderColor = "#e9ecef"}
+                  />
+                </div>
               </div>
 
               <div className="form-group" style={{ marginBottom: "20px" }}>

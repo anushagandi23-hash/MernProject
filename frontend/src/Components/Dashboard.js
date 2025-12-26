@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 function Dashboard() {
   const navigate = useNavigate();
   const userEmail = localStorage.getItem("userEmail") || "User";
+  const userRole = localStorage.getItem("userRole");
   const userName = userEmail.split("@")[0];
-  const isAdmin = userEmail?.includes("admin");
+  const isAdmin = userRole === 'ADMIN' || userEmail?.includes("admin");
   const [greeting, setGreeting] = useState("");
 
   useEffect(() => {
@@ -74,6 +75,29 @@ function Dashboard() {
               <div style={{ fontSize: "36px", marginBottom: "12px" }}>🔍</div>
               <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "600" }}>Search Buses</h3>
               <p style={{ fontSize: "13px", opacity: 0.9, margin: 0 }}>Find and book buses</p>
+            </div>
+
+            <div className="card" style={{
+              background: "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)",
+              color: "white",
+              textAlign: "center",
+              padding: "24px",
+              cursor: "pointer",
+              transition: "transform 0.3s ease, box-shadow 0.3s ease"
+            }}
+            onClick={() => navigate("/my-bookings")}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-4px)";
+              e.currentTarget.style.boxShadow = "0 12px 32px rgba(231, 76, 60, 0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12)";
+            }}
+            >
+              <div style={{ fontSize: "36px", marginBottom: "12px" }}>📋</div>
+              <h3 style={{ margin: "0 0 8px 0", fontSize: "18px", fontWeight: "600" }}>My Bookings</h3>
+              <p style={{ fontSize: "13px", opacity: 0.9, margin: 0 }}>View confirmed bookings</p>
             </div>
 
             {isAdmin && (
