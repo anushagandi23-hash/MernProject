@@ -174,13 +174,6 @@ class TripService {
       attributes: [
         'id', 'busId', 'busName', 'startTime', 'endTime', 
         'from', 'to', 'totalSeats', 'availableSeats', 'pricePerSeat', 'status'
-      ],
-      include: [
-        {
-          model: Bus,
-          attributes: ['busNumber', 'busName'],
-          required: false
-        }
       ]
     });
 
