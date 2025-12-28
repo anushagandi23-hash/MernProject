@@ -12,6 +12,11 @@ const Bus = sequelize.define('Bus', {
     allowNull: false,
     unique: true
   },
+  busName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: 'Standard Bus'
+  },
   from: {
     type: DataTypes.STRING,
     allowNull: false

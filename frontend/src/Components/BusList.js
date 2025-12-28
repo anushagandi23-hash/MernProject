@@ -14,20 +14,25 @@ function BusList() {
     const params = new URLSearchParams(location.search);
     const from = params.get('from') || '';
     const to = params.get('to') || '';
+    const date = params.get('date') || '';
 
-    // Search for Trips (which are created by admins) instead of Buses
-    const url = (from && to) 
-      ? `${API_URL}/trips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}` 
-      : `${API_URL}/trips`;
-
-    setLoading(true);
-    axios.get(url)
-      .then(res => setBuses(res.data?.data || []))
-      .catch((err) => {
-        console.error('Error fetching trips:', err);
-        setBuses([]);
-      })
-      .finally(() => setLoading(false));
+    // Use /trips/search endpoint with date filtering
+    if (from && to && date) {
+      const url = `${API_URL}/trips/search?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`;
+      
+      setLoading(true);
+      axios.get(url)
+        .then(res => setBuses(res.data?.data || []))
+        .catch((err) => {
+          console.error('Error fetching trips:', err);
+          setBuses([]);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // If required params missing, clear buses and show message
+      setBuses([]);
+      setLoading(false);
+    }
   }, [location.search]);
 
   const sortedBuses = [...buses].sort((a, b) => {
@@ -114,6 +119,9 @@ function BusList() {
               <div key={bus.id} className="card" style={{ animation: `slideInUp 0.5s ease-out ${idx * 0.1}s both` }}>
                 <div className="row">
                   <div style={{ flex: 1 }}>
+                    <p className="route">
+                      {bus.busName}
+                    </p>
                     <p className="route">
                       {bus.from} <span style={{ color: "#d63031", fontSize: "16px" }}>→</span> {bus.to}
                     </p>

@@ -81,7 +81,7 @@ const AdminTripManagement = () => {
       setFormData(prev => ({
         ...prev,
         busId: selectedBus.id,
-        busName: selectedBus.busNumber
+        busName: selectedBus.busName || selectedBus.busNumber
       }));
     }
   };

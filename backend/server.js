@@ -4,6 +4,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const sequelize = require('./config/database');
+const { Op } = require('sequelize');
 const User = require('./models/User');
 const Bus = require('./models/bus');
 const Trip = require('./models/Trip');
@@ -332,6 +333,7 @@ app.get('/buses', async (req, res) => {
         return {
           id: bus.id,
           busNumber: bus.busNumber,
+          busName: bus.busName,
           from: bus.from,
           to: bus.to,
           departureTime: bus.departureTime,
@@ -349,6 +351,125 @@ app.get('/buses', async (req, res) => {
       data: busesWithOccupancy 
     });
   } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * GET /cities
+ * Get all available cities from trips
+ */
+app.get('/cities', async (req, res) => {
+  try {
+    const trips = await Trip.findAll({
+      where: { status: 'ACTIVE' },
+      attributes: ['from', 'to'],
+      raw: true
+    });
+
+    // Get unique cities from both 'from' and 'to'
+    const citiesSet = new Set();
+    trips.forEach(trip => {
+      if (trip.from) citiesSet.add(trip.from);
+      if (trip.to) citiesSet.add(trip.to);
+    });
+
+    const cities = Array.from(citiesSet).sort();
+
+    res.json({
+      success: true,
+      data: cities
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /trips/search
+ * Search trips by from, to locations and travel date
+ * Returns trips for a specific date with available seats
+ */
+app.get('/trips/search', async (req, res) => {
+  try {
+    const { from, to, date } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'From and to locations are required' 
+      });
+    }
+
+    if (!date) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Travel date is required' 
+      });
+    }
+
+    // Parse the date (should be in YYYY-MM-DD format)
+    const travelDate = new Date(date);
+    const nextDate = new Date(travelDate);
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    // Find trips for the specified date
+    const trips = await Trip.findAll({
+      where: {
+        from: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('from')),
+          'LIKE',
+          `%${from.toLowerCase()}%`
+        ),
+        to: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('to')),
+          'LIKE',
+          `%${to.toLowerCase()}%`
+        ),
+        status: 'ACTIVE',
+        startTime: {
+          [Op.gte]: travelDate,
+          [Op.lt]: nextDate
+        }
+      },
+      order: [['startTime', 'ASC']]
+    });
+
+    // Add seat availability info
+    const tripsWithSeats = await Promise.all(
+      trips.map(async (trip) => {
+        const bus = await Bus.findByPk(trip.busId);
+        const seatInfo = await BookingService.getAvailableSeats(trip.busId, trip.id);
+        return {
+          id: trip.id,
+          busId: trip.busId,
+          busNumber: bus?.busNumber || '',
+          busName: trip.busName,
+          from: trip.from,
+          to: trip.to,
+          startTime: trip.startTime,
+          endTime: trip.endTime,
+          pricePerSeat: trip.pricePerSeat,
+          totalSeats: trip.totalSeats,
+          availableSeats: seatInfo.availableCount,
+          occupancyPercentage: seatInfo.occupancyPercentage
+        };
+      })
+    );
+
+    res.json({ 
+      success: true, 
+      count: tripsWithSeats.length,
+      data: tripsWithSeats 
+    });
+  } catch (error) {
+    console.error('Search error:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message 
@@ -394,6 +515,7 @@ app.get('/buses/search', async (req, res) => {
         return {
           id: bus.id,
           busNumber: bus.busNumber,
+          busName: bus.busName,
           from: bus.from,
           to: bus.to,
           departureTime: bus.departureTime,
@@ -439,6 +561,7 @@ app.get('/buses/:id', async (req, res) => {
       data: {
         id: bus.id,
         busNumber: bus.busNumber,
+        busName: bus.busName,
         from: bus.from,
         to: bus.to,
         departureTime: bus.departureTime,
@@ -596,7 +719,7 @@ app.get('/user/bookings', auth, async (req, res) => {
         },
         {
           model: Trip,
-          attributes: ['id', 'startTime', 'endTime', 'from', 'to', 'pricePerSeat']
+          attributes: ['id', 'busName', 'startTime', 'endTime', 'from', 'to', 'pricePerSeat']
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -618,11 +741,11 @@ app.get('/user/bookings', auth, async (req, res) => {
         busId: b.busId,
         tripId: b.tripId,
         busNumber: b.Bus?.busNumber || 'N/A',
-        busName: b.Bus?.busName || '',
-        from: b.Bus?.from || b.Trip?.from || 'N/A',
-        to: b.Bus?.to || b.Trip?.to || 'N/A',
-        departureTime: b.Bus?.departureTime || b.Trip?.startTime || null,
-        arrivalTime: b.Bus?.arrivalTime || b.Trip?.endTime || null,
+        busName: b.Trip?.busName || b.Bus?.busName || 'N/A',
+        from: b.Trip?.from || b.Bus?.from || 'N/A',
+        to: b.Trip?.to || b.Bus?.to || 'N/A',
+        departureTime: b.Trip?.startTime || b.Bus?.departureTime || null,
+        arrivalTime: b.Trip?.endTime || b.Bus?.arrivalTime || null,
         seatsBooked: seatsBooked,
         numberOfSeats: numberOfSeats,
         status: b.status,
@@ -761,6 +884,16 @@ app.get('/trips', async (req, res) => {
     Object.keys(filters).forEach(key => filters[key] === undefined && delete filters[key]);
 
     const trips = await TripService.getAvailableTrips(filters);
+    
+    console.log('✅ Trips fetched:', trips.length, 'trips');
+    if (trips.length > 0) {
+      console.log('📋 First trip:', {
+        id: trips[0].id,
+        busName: trips[0].busName,
+        from: trips[0].from,
+        to: trips[0].to
+      });
+    }
 
     res.json({
       success: true,
@@ -1052,14 +1185,14 @@ app.get('/', (req, res) => {
   });
 });
 
-// ============================================
-// DATABASE & SERVER START
+// Database & SERVER START
 // ============================================
 const PORT = process.env.PORT || 5000;
 
 // Job scheduler for booking expiry (runs every 1 minute)
 let expiryJobInterval;
 
+// Use alter: true on first run to create tables, then change to alter: false to prevent duplicate constraints
 sequelize.sync({ alter: true })
   .then(() => {
     console.log('✅ PostgreSQL database synced');

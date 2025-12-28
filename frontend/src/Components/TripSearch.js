@@ -17,11 +17,10 @@ const TripSearch = ({ onTripSelect }) => {
   const [filters, setFilters] = useState({
     from: '',
     to: '',
-    startDate: '',
-    endDate: ''
+    date: ''
   });
 
-  // Fetch all available trips
+  // Fetch trips with date-based filtering
   const fetchTrips = async (filterParams = {}) => {
     setLoading(true);
     setError('');
@@ -29,12 +28,10 @@ const TripSearch = ({ onTripSelect }) => {
       const queryParams = new URLSearchParams();
       if (filterParams.from) queryParams.append('from', filterParams.from);
       if (filterParams.to) queryParams.append('to', filterParams.to);
-      if (filterParams.startDate) queryParams.append('startDate', filterParams.startDate);
-      if (filterParams.endDate) queryParams.append('endDate', filterParams.endDate);
-      queryParams.append('onlyAvailable', 'true');
+      if (filterParams.date) queryParams.append('date', filterParams.date);
 
       const response = await axios.get(
-        `${API_BASE_URL}/trips?${queryParams.toString()}`
+        `${API_BASE_URL}/trips/search?${queryParams.toString()}`
       );
 
       if (response.data.success) {
@@ -51,9 +48,9 @@ const TripSearch = ({ onTripSelect }) => {
     }
   };
 
-  // Initial load
+  // Initial load - don't fetch without filters
   useEffect(() => {
-    fetchTrips();
+    // Empty initial load - user must enter search criteria
   }, []);
 
   // Handle filter changes
@@ -68,6 +65,13 @@ const TripSearch = ({ onTripSelect }) => {
   // Apply filters
   const handleSearch = (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!filters.from || !filters.to || !filters.date) {
+      setError('Please fill in From, To, and Travel Date fields');
+      return;
+    }
+    
     fetchTrips(filters);
   };
 
@@ -76,8 +80,7 @@ const TripSearch = ({ onTripSelect }) => {
     setFilters({
       from: '',
       to: '',
-      startDate: '',
-      endDate: ''
+      date: ''
     });
     fetchTrips();
   };
@@ -112,20 +115,11 @@ const TripSearch = ({ onTripSelect }) => {
             />
           </div>
           <div className="form-group">
-            <label>Start Date</label>
+            <label>Travel Date</label>
             <input
               type="date"
-              name="startDate"
-              value={filters.startDate}
-              onChange={handleFilterChange}
-            />
-          </div>
-          <div className="form-group">
-            <label>End Date</label>
-            <input
-              type="date"
-              name="endDate"
-              value={filters.endDate}
+              name="date"
+              value={filters.date}
               onChange={handleFilterChange}
             />
           </div>

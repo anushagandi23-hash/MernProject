@@ -133,15 +133,6 @@ function MyBookings() {
         </div>
       )}
 
-      {/* Debug Info */}
-      <div style={{ background: '#fff3cd', padding: '15px', margin: '10px', fontSize: '14px', borderRadius: '4px', border: '2px solid #ffc107' }}>
-        <strong>🔍 DEBUG INFO:</strong><br/>
-        📊 Total Bookings from API: <strong>{bookings.length}</strong><br/>
-        📊 Filtered Bookings: <strong>{filteredBookings.length}</strong><br/>
-        🏷️ Status Filter: <strong>"{statusFilter}" (empty = all)</strong><br/>
-        {filteredBookings.length === 0 && bookings.length > 0 && <span style={{color: 'red'}}>⚠️ Filter is hiding all bookings!</span>}
-      </div>
-
       {/* Filters and Sort */}
       {bookings.length > 0 && (
         <div className="controls">
@@ -209,6 +200,10 @@ function MyBookings() {
 
               {/* Bus Details */}
               <div className="bus-details">
+                <div className="detail-row">
+                  <span className="label">Bus Name:</span>
+                  <span className="value">{booking.busName}</span>
+                </div>
                 <div className="detail-row">
                   <span className="label">Bus Number:</span>
                   <span className="value">{booking.busNumber}</span>

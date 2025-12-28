@@ -154,14 +154,20 @@ class BookingService {
    * @param {number} busId - Bus ID
    * @returns {object} Seat information
    */
-  static async getAvailableSeats(busId) {
+  static async getAvailableSeats(busId, tripId = null) {
     const bus = await Bus.findByPk(busId);
     if (!bus) {
       throw new Error('Bus not found');
     }
 
-    // Check if seats exist for this bus
-    const seatCount = await Seat.count({ where: { busId } });
+    // Build where clause - filter by tripId if provided
+    const whereClause = { busId };
+    if (tripId) {
+      whereClause.tripId = tripId;
+    }
+
+    // Check if seats exist for this bus/trip
+    const seatCount = await Seat.count({ where: whereClause });
     
     // If no seats exist, initialize them (handles buses created before this fix)
     if (seatCount === 0) {
@@ -169,7 +175,7 @@ class BookingService {
     }
 
     const seats = await Seat.findAll({
-      where: { busId },
+      where: whereClause,
       attributes: ['seatNumber', 'status'],
       order: [['seatNumber', 'ASC']]
     });
